@@ -1,0 +1,56 @@
+{
+  "name": "graphql-helper",
+  "version": "0.0.1",
+  "description": "A simple helper library for making GraphQL queries. For browser usage, ensure that you have a Promise polyfill.",
+  "main": "lib.js",
+  "scripts": {
+    "compile": "babel src.js --out-file lib.js",
+    "flow": "flow",
+    "test": "ava",
+    "test:watch": "ava --watch",
+    "prepublish": "npm run compile"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bustlelabs/graphql-helper.git"
+  },
+  "keywords": [
+    "graphql",
+    "helper",
+    "graphql-helper",
+    "isomorphic"
+  ],
+  "author": "James Yu",
+  "license": "WTFPL",
+  "bugs": {
+    "url": "https://github.com/bustlelabs/graphql-helper/issues"
+  },
+  "homepage": "https://github.com/bustlelabs/graphql-helper#readme",
+  "devDependencies": {
+    "ava": "^0.15.2",
+    "babel-cli": "^6.11.4",
+    "babel-plugin-transform-flow-strip-types": "^6.8.0",
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-stage-0": "^6.5.0",
+    "babel-register": "^6.11.6",
+    "flow-bin": "^0.30.0"
+  },
+  "ava": {
+    "babel": "inherit",
+    "require": [
+      "babel-register"
+    ]
+  },
+  "babel": {
+    "presets": [
+      "es2015",
+      "stage-0"
+    ],
+    "plugins": [
+      "transform-flow-strip-types"
+    ]
+  },
+  "dependencies": {
+    "isomorphic-fetch": "^2.2.1"
+  }
+}
