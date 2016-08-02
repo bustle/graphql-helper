@@ -1,6 +1,6 @@
 {
   "name": "graphql-helper",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A simple helper library for making GraphQL queries. For browser usage, ensure that you have a Promise polyfill.",
   "main": "lib.js",
   "scripts": {
