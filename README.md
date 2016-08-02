@@ -1,12 +1,11 @@
 # graphql-helper
 
 A GraphQL helper library intended for use on both the browser and server, using ES6 tagged template strings.
-This library is meant for statically determined queries, and encourages the use of variables over polyfills.
+This library is meant for statically determined queries, and encourages the use of variables over string generation.
 
-**n.b.** This library comes with `isomorphic-fetch`, but does not come with a Promise polyfill.
-
-**TODO:** Support option for providing your own "fetch" method
-**TODO:** Support for static analysis and pre-compilation of queries
+- **n.b.** This library comes with `isomorphic-fetch`, but does not come with a Promise polyfill.
+- **TODO:** Support option for providing your own "fetch" method
+- **TODO:** Support for static analysis and pre-compilation of queries
 
 ```bash
 npm install --save graphql-helper
