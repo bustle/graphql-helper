@@ -61,7 +61,12 @@ export function query<U,V>(name: string, varsDef: ?VariablesDef<U>): TemplateStr
 
     const query = `query ${name} ${params} ${String.raw(target, ...values)} ${fragmentDefinitions}`
 
-    return variables => request(query, variables)
+    const fn = variables => request(query, variables)
+
+    fn.queryString = query
+    fn.toString = () => query
+
+    return fn
   }
 
 }
@@ -86,13 +91,18 @@ export function mutation<U,V>(name: string, varsDef: ?VariablesDef<U>): Template
       }
     } ${fragmentDefinitions}`
 
-    return variables => request
+    const fn = variables => request
       ( query
       , { input: { clientMutationId: gqlClientMutationId()
                  , ...variables
                  }
         }
       )
+
+    fn.queryString = query
+    fn.toString = () => query
+
+    return fn
 
   }
 
@@ -117,9 +127,21 @@ export const partial: TemplateString<Partial> = (target, ...values) => (
 
 // Fragment
 
-export const fragment = (name: string, type: string = name): TemplateString<Partial> =>
+type Fragment =
+  { __GRAPHQL_QUERY_PARTIAL__: true
+  , __GRAPHQL_FRAGMENT__: true
+  , name: string
+  , type: string
+  , toString: () => string
+  , fragments: { [key: string]: FragmentDefinition }
+  }
+
+export const fragment = (name: string, type: string = name): TemplateString<Fragment> =>
   (target, ...values) => (
     { __GRAPHQL_QUERY_PARTIAL__: true
+    , __GRAPHQL_FRAGMENT__: true
+    , name
+    , type
     , toString: () => `...${name}`
     , fragments:
       { ...mergeFragments(values)
