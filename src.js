@@ -117,7 +117,7 @@ export const partial: TemplateString<Partial> = (target, ...values) => (
 
 // Fragment
 
-export const fragment = (type: string, name: string = type): TemplateString<Partial> =>
+export const fragment = (name: string, type: string = name): TemplateString<Partial> =>
   (target, ...values) => (
     { __GRAPHQL_QUERY_PARTIAL__: true
     , toString: () => `...${name}`

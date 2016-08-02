@@ -49,7 +49,7 @@ test('GraphQL.mutation', async t => {
 
 // Fragment
 
-const SitePath = GraphQL.fragment('Path', 'PathOfSite') `{
+const SitePath = GraphQL.fragment('PathOfSite', 'Path') `{
   id
   name
   slug

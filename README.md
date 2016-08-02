@@ -135,11 +135,11 @@ Evaluated with the variables:
 # Fragment
 
 ```purs
-GraphQL.fragment a :: ( type :: String, name :: String? ) -> QueryString a -> Fragment a
+GraphQL.fragment a :: ( name :: String, type :: String? ) -> QueryString a -> Fragment a
 ```
 
 ```js
-const SitePath = GraphQL.fragment('Path', 'PathOfSite') `{
+const SitePath = GraphQL.fragment('PathOfSite', 'Path') `{
   id
   name
   slug
@@ -189,14 +189,14 @@ fragment Site on Site {
   }
 }
 
-fragment SitePath on Path {
+fragment PathOfSite on Path {
   id
   name
   slug
 }
 ```
 
-If no `name` argument is given, it will default to being the same as `type`
+If no `type` argument is given, it will default to being the same as `name`
 
 # Unions
 
