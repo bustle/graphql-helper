@@ -236,7 +236,23 @@ The `GraphQL.partial` method is highly discouraged in favour of real fragments, 
 in certain cases such as Relay connections where a common pattern is used but there's no clear type or interface:
 
 ```js
+const paginationPartial = GraphQL.partial `
+  edges {
+    cursor
+    node {
+      ${Card.fragment}
+    }
+  }
+  pageInfo {
+    hasNextPage
+  }
+`
 
+const query = GraphQL.query('MyQuery') `{
+  topicConnection {
+    ${paginationPartial}
+  }
+}`
 ```
 
 Note that for all of the above methods,
