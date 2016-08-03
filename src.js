@@ -154,7 +154,7 @@ export const fragment = (name: string, type: string = name): TemplateString<Frag
 
 export const union = (...partials: Array<Partial>): Partial => (
   { __GRAPHQL_QUERY_PARTIAL__: true
-  , toString: () => partials.map(p => p.toString()).join(' ')
+  , toString: () => '__typename ' + partials.map(p => p.toString()).join(' ')
   , fragments: mergeFragments((partials : any))
   }
 )
