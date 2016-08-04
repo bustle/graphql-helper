@@ -85,7 +85,7 @@ export function mutation<U,V>(name: string, varsDef: ?VariablesDef<U>): Template
       collectFragments(values).join(' ')
 
     const query = `mutation ${capitalized}($input: ${inputType}!) {
-      ${name}(input: $input) {
+      payload: ${name}(input: $input) {
         clientMutationId
         ... on ${payloadType} ${String.raw(target, ...values)}
       }
@@ -97,7 +97,7 @@ export function mutation<U,V>(name: string, varsDef: ?VariablesDef<U>): Template
                  , ...variables
                  }
         }
-      )
+      ).then(data => Promise.resolve(data.payload))
 
     fn.queryString = query
     fn.toString = () => query
