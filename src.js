@@ -8,6 +8,17 @@ let gqlHost, gqlHeaders, gqlClientMutationId
 type TemplateStringTarget = any
 type TemplateString<V> = (target: TemplateStringTarget, ...values: Array<mixed>) => V
 
+type StrMap<V> = { [key: string]: V }
+
+function decorate<T,K,V>(target: T, props: { [key: K]: V }): T {
+  Object.keys(props).forEach(key => (target: any)[(key: any)] = props[(key: any)])
+  return target
+}
+
+function invariant(condition: mixed, message: string): void {
+  if (!condition) throw new Error(message)
+}
+
 declare class String {
   static raw: TemplateString<string>;
 }
@@ -16,7 +27,7 @@ declare class String {
 
 type Configs =
   { host: string
-  , headers?: { [key: string]: string }
+  , headers?: StrMap<string>
   , clientMutationId?: () => string
   }
 export function configure({ host, headers = {}, clientMutationId = noId }: Configs): void {
@@ -28,45 +39,63 @@ export function configure({ host, headers = {}, clientMutationId = noId }: Confi
 // Request
 
 // TODO: support operationName
-export function request<U,V>(query: string, variables: ?U = null): Promise<V> {
+export function request<U,V>(query: string, variables: ?U = null, operations: ?Array<string>): Promise<V> {
   return fetch
     ( gqlHost
     , { method: 'post'
       , headers: gqlHeaders
-      , body: JSON.stringify({ query, variables: JSON.stringify(variables) })
+      , body: JSON.stringify(
+          { query
+          , variables: JSON.stringify(variables)
+          , operations
+          }
+        )
       }
     )
     .then(r => r.json())
-    .then(r => r.errors ? Promise.reject(r.errors) : Promise.resolve(r.data))
 }
 
 // Query
 
-type VariablesDef<U> = { [key: string]: string }
+type VariablesDef<U> = StrMap<string>
 
 type Query<U,V> = (variables: U) => Promise<V>
 
+const operationDefinitions: StrMap<Query<mixed,mixed>> = {}
+
+const wrapParens = (str: ?string): string => str ? `(${str})` : ''
+
 export function query<U,V>(name: string, varsDef: ?VariablesDef<U>): TemplateString<Query<U,V>> {
 
-  const paramsList: ?string = runMaybe(varsDef, v =>
-    Object.keys(v).map(k => `$${k}:${v[k]}`).join(',')
+  const params: string = wrapParens(
+    runMaybe(varsDef, v =>
+      Object.keys(v).map(k => `$${k}:${v[k]}`).join(',')
+    )
   )
-
-  const params: string = paramsList ? `(${paramsList})` : ''
 
   return (target, ...values) => {
 
-    const fragmentDefinitions: string =
-      collectFragments(values).join(' ')
+    invariant
+      ( !operationDefinitions[name]
+      , `ERROR: There is already an operation named ${name}`
+      )
 
-    const query = `query ${name} ${params} ${String.raw(target, ...values)} ${fragmentDefinitions}`
+    const fragments: StrMap<FragmentDefinition> = mergeFragments(values)
 
-    const fn = variables => request(query, variables)
+    const operation = `query ${name} ${params} ${String.raw(target, ...values)}`
+    const queryString = operation + ' ' +valuesOf(fragments).join(' ')
 
-    fn.queryString = query
-    fn.toString = () => query
-
-    return fn
+    return operationDefinitions[name] = decorate
+      ( variables => request(queryString, variables)
+          .then(r => r.errors ? Promise.reject(r.errors) : Promise.resolve(r.data))
+      , { __GRAPHQL_QUERY__: true
+        , operationName: name
+        , operation
+        , fragments
+        , queryString
+        , toString: () => queryString
+        }
+      )
   }
 
 }
@@ -81,30 +110,58 @@ export function mutation<U,V>(name: string, varsDef: ?VariablesDef<U>): Template
 
   return (target, ...values) => {
 
-    const fragmentDefinitions: string =
-      collectFragments(values).join(' ')
+    invariant
+      ( !operationDefinitions[capitalized]
+      , `ERROR: There is already an operation named ${capitalized}`
+      )
 
-    const query = `mutation ${capitalized}($input: ${inputType}!) {
+    const fragments: StrMap<FragmentDefinition> = mergeFragments(values)
+
+    const operation = `mutation ${capitalized}($input: ${inputType}!){
       payload: ${name}(input: $input) {
         clientMutationId
         ... on ${payloadType} ${String.raw(target, ...values)}
       }
-    } ${fragmentDefinitions}`
+    }`
 
-    const fn = variables => request
-      ( query
-      , { input: { clientMutationId: gqlClientMutationId()
-                 , ...variables
-                 }
+    const queryString = operation + ' ' + valuesOf(fragments).join(' ')
+
+    return operationDefinitions[capitalized] = decorate
+      ( variables => request
+         ( queryString
+         , { input: { clientMutationId: gqlClientMutationId()
+                    , ...variables
+                    }
+           }
+         ).then(r => r.errors ? Promise.reject(r.errors) : Promise.resolve(r.data.payload))
+      , { __GRAPHQL_MUTATION__: true
+        , operationName: capitalized
+        , operation
+        , fragments
+        , queryString
+        , toString: () => queryString
         }
-      ).then(data => Promise.resolve(data.payload))
-
-    fn.queryString = query
-    fn.toString = () => query
-
-    return fn
-
+      )
   }
+
+}
+
+// Batch
+
+export function batch(ops: Array<Query<mixed,mixed>>, variables: mixed): Promise<mixed> {
+
+  // TEMPORARY: come up with a reasonable workaround for this:
+
+  const names = ops.map(op => op.operationName)
+  const fragments = mergeFragments(ops.map(op => op.fragments))
+  const doc = ops.map(op => op.operation).join(' ')
+            + ' '
+            + valuesOf(fragments).join(' ')
+  return request(doc, variables, names)
+    .then(r => r.map(({ data, errors }, i) => {
+      if (errors) throw new Error(errors)
+      return data
+    }))
 
 }
 
@@ -113,7 +170,7 @@ export function mutation<U,V>(name: string, varsDef: ?VariablesDef<U>): Template
 type Partial =
   { __GRAPHQL_QUERY_PARTIAL__: true
   , toString: () => string
-  , fragments: { [key: string]: FragmentDefinition }
+  , fragments: StrMap<FragmentDefinition>
   }
 
 type FragmentDefinition = string
@@ -133,22 +190,32 @@ type Fragment =
   , name: string
   , type: string
   , toString: () => string
-  , fragments: { [key: string]: FragmentDefinition }
+  , fragments: StrMap<FragmentDefinition>
   }
 
+const fragmentDefinitions: StrMap<Fragment> = {}
+
 export const fragment = (name: string, type: string = name): TemplateString<Fragment> =>
-  (target, ...values) => (
-    { __GRAPHQL_QUERY_PARTIAL__: true
-    , __GRAPHQL_FRAGMENT__: true
-    , name
-    , type
-    , toString: () => `...${name}`
-    , fragments:
-      { ...mergeFragments(values)
-      , [name]: `fragment ${name} on ${type} ${String.raw(target, ...values)}`
+  (target, ...values) => {
+
+    invariant
+      ( !fragmentDefinitions[name]
+      , `ERROR: there is already a fragment with name ${name}`
+      )
+
+    return fragmentDefinitions[name] =
+      { __GRAPHQL_QUERY_PARTIAL__: true
+      , __GRAPHQL_FRAGMENT__: true
+      , name
+      , type
+      , toString: () => `...${name}`
+      , fragments:
+        { ...mergeFragments(values)
+        , [name]: `fragment ${name} on ${type} ${String.raw(target, ...values)}`
+        }
       }
-    }
-  )
+
+  }
 
 // Union
 
@@ -164,12 +231,9 @@ export const union = (...partials: Array<Partial>): Partial => (
 const asPartial = (x: any): ?Partial =>
   (x && x.__GRAPHQL_QUERY_PARTIAL__) ? x : null
 
-const mergeFragments = (values: Array<mixed>): { [key: string]: FragmentDefinition } =>
+const mergeFragments = (values: Array<mixed>): StrMap<FragmentDefinition> =>
   ( values.map(asPartial).filter(x => !!x) : any )
     .reduce((acc, { fragments }) => Object.assign(acc, fragments), {})
-
-const collectFragments = (values: Array<mixed>): Array<FragmentDefinition> =>
-  valuesOf(mergeFragments(values))
 
 // General Utils:
 

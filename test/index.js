@@ -126,3 +126,51 @@ test('GraphQL.partial', async t => {
   t.truthy(result)
 })
 
+// Error
+
+const errQuery = GraphQL.query('MyFailingQuery') `{
+  nonExistantField
+}`
+
+test('GraphQL.partial', async t => {
+  t.throws(errQuery())
+})
+
+// Batch
+
+test('GraphQL.batch', async t => {
+  const result = await GraphQL.batch
+    ( [ GraphQL.query('Batch1', { siteKey: 'String!' }) `{
+          env
+          site(key: $siteKey) {
+            id
+            name
+          }
+        }`
+      , GraphQL.query('Batch2', { pageId: 'Int!' }) `{
+          page(id: $pageId) {
+            id
+            name
+          }
+        }`
+      , GraphQL.query('Batch3', { cardIds: '[Int!]!' }) `{
+          cards(ids: $cardIds) {
+            __typename
+          }
+        }`
+      ]
+    , { siteKey: "bustle"
+      , pageId: 3132
+      , cardIds: [ 630, 636 ]
+      }
+    )
+
+  // => [ { env: ... }
+  //    , { page: ... }
+  //    , { cards: [ ... ] }
+  //    ]
+
+  t.truthy(result[0])
+  t.truthy(result[1])
+  t.truthy(result[2])
+})
