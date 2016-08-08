@@ -3,7 +3,10 @@
 import fetch from 'isomorphic-fetch'
 
 const noId = () => 'No ID Provided'
-let gqlHost, gqlHeaders, gqlClientMutationId
+let gqlHost
+  , gqlHeaders
+  , gqlIgnoreInvariants
+  , gqlClientMutationId
 
 type TemplateStringTarget = any
 type TemplateString<V> = (target: TemplateStringTarget, ...values: Array<mixed>) => V
@@ -16,7 +19,7 @@ function decorate<T,K,V>(target: T, props: { [key: K]: V }): T {
 }
 
 function invariant(condition: mixed, message: string): void {
-  if (!condition) throw new Error(message)
+  if (!gqlIgnoreInvariants && !condition) throw new Error(message)
 }
 
 declare class String {
@@ -26,13 +29,21 @@ declare class String {
 // TODO: schema validation
 
 type Configs =
-  { host: string
-  , headers?: StrMap<string>
-  , clientMutationId?: () => string
+  { host: string                    // graphql endpoint
+  , headers?: StrMap<string>        // additional request headers
+  , ignoreInvariants: boolean       // ignore invariants (used for HMR)
+  , clientMutationId?: () => string // ID generator
   }
-export function configure({ host, headers = {}, clientMutationId = noId }: Configs): void {
+export function configure(
+  { host
+  , headers = {}
+  , ignoreInvariants = false
+  , clientMutationId = noId
+  }: Configs
+): void {
   gqlHost = host
   gqlHeaders = { 'Content-Type': 'application/json', ...headers }
+  gqlIgnoreInvariants = ignoreInvariants
   gqlClientMutationId = clientMutationId
 }
 
