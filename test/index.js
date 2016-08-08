@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import * as GraphQL from '../src'
+import GraphQL from '../src'
 
 test.before(t => {
   GraphQL.configure(

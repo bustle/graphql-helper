@@ -226,6 +226,10 @@ export const union = (...partials: Array<Partial>): Partial => (
   }
 )
 
+// ember compat:
+
+export default { configure, request, query, mutation, batch, partial, fragment, union }
+
 // Query Partial Utils
 
 const asPartial = (x: any): ?Partial =>
