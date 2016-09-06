@@ -97,8 +97,14 @@ export function query<U,V>(name: string, varsDef: ?VariablesDef<U>): TemplateStr
     const queryString = operation + ' ' +valuesOf(fragments).join(' ')
 
     return operationDefinitions[name] = decorate
-      ( variables => request(queryString, variables)
-          .then(r => r.errors ? Promise.reject(r.errors) : Promise.resolve(r.data))
+      ( variables =>
+          request(queryString, variables)
+            .then(r => r.errors
+                     ? Promise.reject(r.errors)
+                     : r.data
+                     ? Promise.resolve(r.data)
+                     : Promise.reject([{ message: 'Request error' }])
+                 )
       , { __GRAPHQL_QUERY__: true
         , operationName: name
         , operation
@@ -144,7 +150,12 @@ export function mutation<U,V>(name: string, varsDef: ?VariablesDef<U>): Template
                     , ...variables
                     }
            }
-         ).then(r => r.errors ? Promise.reject(r.errors) : Promise.resolve(r.data.payload))
+         ).then(r => r.errors
+                   ? Promise.reject(r.errors)
+                   : r.data
+                   ? Promise.resolve(r.data.payload)
+                   : Promise.reject([{ message: 'Request error' }])
+               )
       , { __GRAPHQL_MUTATION__: true
         , operationName: capitalized
         , operation
