@@ -8,10 +8,10 @@ let gqlHost
   , gqlIgnoreInvariants
   , gqlClientMutationId
 
-type TemplateStringTarget = any
-type TemplateString<V> = (target: TemplateStringTarget, ...values: Array<mixed>) => V
+export type TemplateStringTarget = any
+export type TemplateString<V> = (target: TemplateStringTarget, ...values: Array<mixed>) => V
 
-type StrMap<V> = { [key: string]: V }
+export type StrMap<V> = { [key: string]: V }
 
 function decorate<T,K,V>(target: T, props: { [key: K]: V }): T {
   Object.keys(props).forEach(key => (target: any)[(key: any)] = props[(key: any)])
@@ -28,7 +28,7 @@ declare class String {
 
 // TODO: schema validation
 
-type Configs =
+export type Configs =
   { host: string                    // graphql endpoint
   , headers?: StrMap<string>        // additional request headers
   , ignoreInvariants: boolean       // ignore invariants (used for HMR)
@@ -68,9 +68,9 @@ export function request<U,V>(query: string, variables: ?U = null, operations: ?A
 
 // Query
 
-type VariablesDef<U> = StrMap<string>
+export type VariablesDef<U> = StrMap<string>
 
-type Query<U,V> = (variables: U) => Promise<V>
+export type Query<U,V> = (variables: U) => Promise<V>
 
 const operationDefinitions: StrMap<Query<mixed,mixed>> = {}
 
@@ -189,13 +189,13 @@ export function batch(ops: Array<Query<mixed,mixed>>, variables: mixed): Promise
 
 // Partial
 
-type Partial =
+export type Partial =
   { __GRAPHQL_QUERY_PARTIAL__: true
   , toString: () => string
   , fragments: StrMap<FragmentDefinition>
   }
 
-type FragmentDefinition = string
+export type FragmentDefinition = string
 
 export const partial: TemplateString<Partial> = (target, ...values) => (
   { __GRAPHQL_QUERY_PARTIAL__: true
@@ -206,7 +206,7 @@ export const partial: TemplateString<Partial> = (target, ...values) => (
 
 // Fragment
 
-type Fragment =
+export type Fragment =
   { __GRAPHQL_QUERY_PARTIAL__: true
   , __GRAPHQL_FRAGMENT__: true
   , name: string
