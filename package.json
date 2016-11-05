@@ -1,6 +1,6 @@
 {
   "name": "graphql-helper",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A simple helper library for constructing GraphQL queries.",
   "main": "lib.js",
   "scripts": {
@@ -49,6 +49,5 @@
     "plugins": [
       "transform-flow-comments"
     ]
-  },
-  "dependencies": {}
+  }
 }
