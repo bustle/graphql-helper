@@ -1,13 +1,41 @@
 import test from 'ava'
+import fetch from 'isomorphic-fetch'
 
-import GraphQL from '../src'
+import * as GraphQL from '../src'
 
-test.before(t => {
-  GraphQL.configure(
-    { host: 'https://chi.bustle.com'
-    }
-  )
-})
+async function graphql(op, vars, token) {
+  const url = token
+    ? 'https://chi.bustle.com/authorized'
+    : 'https://chi.bustle.com/'
+
+  // if we have a mutation, decorate the input
+  const variables = op.__GRAPHQL_MUTATION__
+    ? { input: vars }
+    : vars
+
+  // make request
+  const { data, errors } = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Authorization': token,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      query: op.toString(),
+      variables: JSON.stringify(variables),
+      token,
+    }),
+  }).then(r => r.json())
+
+  if (errors)
+    throw errors
+
+  return op.__GRAPHQL_MUTATION__
+    ? data.payload
+    : data
+}
+
 
 // QUERY
 
@@ -20,13 +48,17 @@ const query = GraphQL.query('MyQuery', { key: "String!" }) `{
 }`
 
 test('GraphQL.query', async t => {
-  const result = await query({ key: "bustle" })
-  t.truthy(result)
+  const { env, site } = await graphql(query, { key: "Bustle" })
+  t.truthy(env)
+  t.truthy(site)
 })
 
 // MUTATION
 
-const mutation = GraphQL.mutation('createImageCard', { key: "String!", lint: "Boolean" }) `{
+const mutation = GraphQL.mutation('createImageFromKey', {
+  key: "String!",
+  lint: "Boolean",
+}) `{
   image {
     id
     key
@@ -36,20 +68,21 @@ const mutation = GraphQL.mutation('createImageCard', { key: "String!", lint: "Bo
   }
 }`
 
+const token = "SECRET"
+
 test('GraphQL.mutation', async t => {
-  /*
-  GraphQL.configure(
-    { host: 'https://chi.bustle.com/authorized'
-    , headers: { 'Authorization': 'MY_TOKEN'
-               }
-    }
-  )*/
-  t.throws(mutation({ key: "2016/4/1/518314746.jpg" }))
+  t.throws(
+    graphql(mutation, { key: "2016/4/1/518314746.jpg" }, token)
+  )
+  // this test will pass if provided a valid token
+  // const { image } = await graphql(mutation, { key: "2016/4/1/518314746.jpg" }, token)
+  // t.truthy(image)
 })
+
 
 // Fragment
 
-const SitePath = GraphQL.fragment('PathOfSite', 'Path') `{
+const SitePage = GraphQL.fragment('PageOfSite', 'Page') `{
   id
   name
   slug
@@ -58,73 +91,29 @@ const SitePath = GraphQL.fragment('PathOfSite', 'Path') `{
 const Site = GraphQL.fragment('Site') `{
   id
   name
-  paths {
-    ${SitePath}
+  pageConnection(first: 10) {
+    nodes {
+      ${SitePage}
+    }
   }
 }`
 
 // usage
 
 const queryWithFragment = GraphQL.query('MyComplexQuery') `{
-  site(key: "bustle") {
+  site(key: "Bustle") {
     ${Site}
   }
-  path(id: 2271) {
-    ${SitePath}
+  pageBySlug(siteKey: "Bustle", slug: "") {
+    ${SitePage}
   }
 }`
 
 test('GraphQL.fragment', async t => {
-  const result = await queryWithFragment()
+  const result = await graphql(queryWithFragment)
   t.truthy(result)
 })
 
-// Union
-
-const ClipArticle = GraphQL.fragment(`ClipArticle`) `{
-  id
-  article {
-    title
-  }
-}`
-
-const ClipPost = GraphQL.fragment('ClipPost') `{
-  id
-  post {
-    title
-  }
-}`
-
-const Clip = GraphQL.union(ClipArticle, ClipPost)
-
-const queryWithUnion = GraphQL.query('MyUnionQuery') `{
-  clips(ids: [ 630, 656, 659 ]) {
-    ${Clip}
-  }
-}`
-
-test('GraphQL.union', async t => {
-  const result = await queryWithUnion()
-  t.truthy(result)
-})
-
-// Partial
-
-const partial = GraphQL.partial`
-  site(key: $key) {
-    ${Site}
-  }
-`
-
-const queryWithPartial = GraphQL.query('MyOtherQuery', { key: "String!" }) `{
-  env
-  ${partial}
-}`
-
-test('GraphQL.partial', async t => {
-  const result = await queryWithPartial({ key: 'String!' })
-  t.truthy(result)
-})
 
 // Error
 
@@ -133,44 +122,7 @@ const errQuery = GraphQL.query('MyFailingQuery') `{
 }`
 
 test('GraphQL.partial', async t => {
-  t.throws(errQuery())
-})
-
-// Batch
-
-test('GraphQL.batch', async t => {
-  const result = await GraphQL.batch
-    ( [ GraphQL.query('Batch1', { siteKey: 'String!' }) `{
-          env
-          site(key: $siteKey) {
-            id
-            name
-          }
-        }`
-      , GraphQL.query('Batch2', { pageId: 'Int!' }) `{
-          page(id: $pageId) {
-            id
-            name
-          }
-        }`
-      , GraphQL.query('Batch3', { cardIds: '[Int!]!' }) `{
-          cards(ids: $cardIds) {
-            __typename
-          }
-        }`
-      ]
-    , { siteKey: "bustle"
-      , pageId: 3132
-      , cardIds: [ 630, 636 ]
-      }
-    )
-
-  // => [ { env: ... }
-  //    , { page: ... }
-  //    , { cards: [ ... ] }
-  //    ]
-
-  t.truthy(result[0])
-  t.truthy(result[1])
-  t.truthy(result[2])
+  t.throws(
+    graphql(errQuery)
+  )
 })

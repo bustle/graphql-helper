@@ -1,282 +1,327 @@
 # graphql-helper
 
-A GraphQL helper library intended for use on both the browser and server, using ES6 tagged template strings.
-This library is meant for statically determined queries, and encourages the use of variables over string generation.
+A GraphQL helper library for constructing queries and accumulating fragments.
+This library is meant for statically determined queries, and encourages the use of variables and fragments over string concatenation.
 
-- **n.b.** This library comes with `isomorphic-fetch`, but does not come with a Promise polyfill.
-- **TODO:** Support option for providing your own "fetch" method
+This library is fairly short and written in a literate style, it is encouraged to take the time to read through the source code.
+
 - **TODO:** Support for static analysis and pre-compilation of queries
 
 ```bash
 npm install --save graphql-helper
 ```
 
+
+## Example:
+
 ```js
 import * as GraphQL from 'graphql-helper'
+import fetch from 'isomorphic-fetch'
 
-GraphQL.configure(
-  { host: "http://localhost:3000/graphql"         // path to the GraphQL endpoint
-  , headers: { Authorization: "my-token" }        // optional: additional headers in the request
-  , clientMutationId: () => `ID:${Math.random()}` // optional: function for generating unique IDS
-  }
-)
-```
 
-# Query
-
-```purs
-GraphQL.query a b :: (name :: String, schema :: Schema a) -> QueryString b -> (a -> Promise b)
-```
-
-```js
-const MyQuery = GraphQL.query('MyQuery', { siteKey: "String!" }) `{
-  site(key: $siteKey) {
-    id
-    name
-  }
-}`
-
-// usage
-
-MyQuery({ siteKey: "bustle" })
-  .then(console.log.bind(console))
-// => { site: { id: 100, name: "bustle" } }
-```
-
-Translates to the following query:
-
-```graphql
-query MyQuery($siteKey: String!) {
-  site(key: $siteKey) {
-    id
-    name
-  }
-}
-```
-
-Evaluated with the variables:
-
-```json
-{
-  "siteKey": "bustle"
-}
-```
-
-If no schema is provided, a query of no arguments is created (returning a thunk).
-
-# Mutation
-
-```purs
-GraphQL.mutation a b :: (name :: String, schema :: Schema a) -> QueryString b -> (a -> Promise b)
-```
-
-Using mutations requires that your schema be set up as so:
-
-```graphql
-input MyMutationInput {
-  clientMutationid: String!
-  # ... any other fields here
-}
-type MyMutationOutput {
-  clientMutationId: String!
-  # ... any other fields here
-}
-type RootMutationType {
-  myMutation(input: MyMutationInput!): MyMutationOutput!
-}
-```
-
-Allowing you to define a mutation:
-
-```js
-const CreateImageCard = GraphQL.mutation('createImageCard', { key: 'String!', lint: 'Boolean' }) `{
-  image {
-    key
-    width
-    height
-  }
-}`
-
-// usage
-
-CreateImageCard({ key: '2016/07/02/my-file.jpg', lint: false })
-  .then(console.log.bind(console))
-// => { image: { key: '2016/07/02/my-file.jpg', width: 500, height: 300  } }
-```
-
-Which is translated to:
-```graphql
-mutation CreateImageCard($input: CreateImageCardInput!) {
-  createImageCard(input: $input) {
-    clientMutationId
-    ... on CreateImageCardPayload {
-      image {
-        key
-        width
-        height
-      }
-    }
-  }
-}
-```
-
-Evaluated with the variables:
-```json
-{
-  "input": {
-    "clientMutationId": "SOME_GENERATED_ID",
-    "key": "2016/07/02/my-file.jpg",
-    "lint": false
-  }
-}
-```
-
-# Fragment
-
-```purs
-GraphQL.fragment a :: ( name :: String, type :: String? ) -> QueryString a -> Fragment a
-```
-
-```js
-const SitePath = GraphQL.fragment('PathOfSite', 'Path') `{
-  id
+const Contributor = GraphQL.fragment('Contributor', 'User') `{
   name
   slug
 }`
 
-const Site = GraphQL.fragment('Site') `{
-  id
-  name
-  paths {
-    ${SitePath}
+const Post = GraphQL.fragment('PostPage', 'Post') `{
+  title
+  body
+  contributors {
+    ${Contributor}
   }
 }`
+
+const PostQuery = GraphQL.query('PostQuery', { postId: 'ID!' }) `{
+  post(id: $postId) {
+    id
+    title
+    ${Post}
+  }
+}`
+
+
+// Write your own app-specific dispatcher.
+// In this case, we just have a simple function, but this could live in
+// a react library, an elm effects module, an ember service...
+
+function runQuery(op, vars): Promise<Result> {
+  return fetch('http://localhost:3000/graphql', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        query: op.toString(),
+        variables: JSON.stringify(vars),
+      }),
+    })
+    .then(r => r.json())
+    .then(({ data, errors }) => {
+      errors ? Promise.reject(errors)
+             : Promise.resolve(data)
+    })
+}
+
 
 // usage
+runQuery(PostQuery, { postId: 123 })
+  .then(data => {
+    // data = {
+    //   post: {
+    //     id: 123,
+    //     title: "foo",
+    //     body: "bar",
+    //     contributors: [
+    //       { name: 'Daria Morgendorffer', slug: '/daria' },
+    //       { name: 'Jane Lane', slug: '/jane' }
+    //     ]
+    //   }
+    // }
+  })
 
-const MyComplexQuery = GraphQL.query('MyComplexQuery') `{
-  site(key: "bustle") {
-    ${Site}
-  }
-  path(id: 2271) {
-    ${SitePath}
-  }
-}`
-
-MyComplexQuery()
-  .then(console.log.bind(console))
-// => { site: { id: ... }, path: { id: ... } }
 ```
 
-Translates to the query:
+
+## Fragments
+
+A fragment represents the data requirements of some component or aspect of an application.
+
+Consider the graphql fragment:
 
 ```graphql
-query MyComplexQuery {
-  site(key: "bustle") {
-    ...Site
-  }
-  path(id: 2271) {
-    ...SitePath
-  }
-}
-
-fragment Site on Site {
+fragment FullPost on Post {
   id
-  name
-  paths {
-    ...SitePath
-  }
-}
-
-fragment PathOfSite on Path {
-  id
-  name
   slug
+  title
+  body
+  contributors {
+    ...Contributor
+  }
+  author {
+    name
+    ...Author
+  }
 }
 ```
 
-If no `type` argument is given, it will default to being the same as `name`
-
-# Unions
-
-Template strings aren't so great at dealing with arrays, so a utility function is exposed
-to expand unions of fragments:
+Suppose `Author` and `Contributor` are fragment definitions that we have already defined, then we can define `FullPost` as follows:
 
 ```js
-const ClipArticle = GraphQL.fragment(`ClipArticle`) `{
+import * as GraphQL from 'graphql-helper'
+import { Author, Contributor } from 'some-module'
+
+const FullPost = GraphQL.fragment('FullPost', 'Post') `{
   id
-  article {
-    title
+  slug
+  title
+  body
+  contributors {
+    ...Contributors
   }
-}`
-
-const ClipPost = GraphQL.fragment('ClipPost') `{
-  id
-  post {
-    title
-  }
-}`
-
-const Clip = GraphQL.union(ClipArticle, ClipPost)
-
-// usage
-
-const unionQuery = GraphQL.query('MyUnionQuery') `{
-  clips(ids: [ 630, 656, 659 ]) {
-    ${Clip}
+  author {
+    name
+    ...Author
   }
 }`
 ```
 
-This method is variadic, i.e. it is of the form `GraphQL.union(fragment1, fragment2, fragment3, ...)`
 
-# Partial
+## Queries
 
-The `GraphQL.partial` method is highly discouraged in favour of real fragments, however can be useful
-in certain cases such as Relay connections where a common pattern is used but there's no clear type or interface:
+A query represents some operation that fetches data.
+
+Consider the GraphQL query:
+
+```graphql
+query GetPost($id: ID!) {
+  post(id: $id) {
+    __typename
+    id
+    ...FullPost
+  }
+}
+```
+
+Suppose `FullPost` is already defined above. Then we can define this query as follows:
 
 ```js
-const paginationPartial = GraphQL.partial `
-  edges {
-    cursor
-    node {
-      ${Card.fragment}
-    }
+const GetPost = GraphQL.query('GetPost', { id: 'ID!' }) `{
+  post(id: $id) {
+    __typename
+    id
+    ${FullPost}
   }
-  pageInfo {
-    hasNextPage
+}`
+```
+
+And we can open up the resulting query object yields the following:
+
+```js
+GetPost.__GRAPHQL_QUERY__
+// => true
+
+GetPost.name
+// => 'GetPost'
+
+GetPost.definition
+// => `query GetPost($id: ID!) {
+  post(id: $id) {
+    __typename
+    id
+    ...FullPost
   }
+}`
+
+GetPost.fragments
+// => { FullPost, Author, Contributor }
+
+// the following are equivalent:
+GetPost.definition
+GetPost.toString()
+// => `query GetPost($id: ID!) {
+  post(id: $id) {
+    __typename
+    id
+    ...FullPost
+  }
+}
+
+fragment FullPost on Post {
+  id
+  slug
+  id
+  slug
+  title
+  body
+  contributors {
+    ...Contributor
+  }
+  author {
+    name
+    ...Author
+  }
+}
+
+fragment Contributor on User {
+  ...etc
 `
-
-const query = GraphQL.query('MyQuery') `{
-  topicConnection {
-    ${paginationPartial}
-  }
-}`
 ```
 
-Note that for all of the above methods,
-these template strings offer special support for `GraphQL.fragment` and `GraphQL.union` instances,
-but in the end are still plain old strings. Therefore, any piece of GraphQL syntax is valid in the string.
 
-```js
-// e.g. the valid will work exactly as you'd expect:
+## Mutations
 
-const myFragment = GraphQL.fragment('SomeComplexType') `{
-  __typename
-  ... on SomeType {
-    foo
-    bar
-    baz {
-      id
-      ... on SomeNestedType {
-        foo
-      }
+A mutation represents some operation which changes data.
+
+Consider a relay-compatible mutation `createPost`:
+
+```graphql
+type RootMutation {
+  ...
+  createPost(input: CreatePostInput): CreatePostPayload
+  ...
+}
+
+input CreatePostInput {
+  clientMutationId: String!
+  title: String!
+  body: String!
+}
+
+type CreatePostPayload {
+  clientMutationId: String!
+  post: Post!
+}
+
+```
+
+Then there exists a natural, "free mutation" that performs just that mutation:
+
+```graphql
+mutation CreatePost($input: CreatePostInput) {
+  payload: createPost(input: $Input) {
+    # application decides which fields to fetch
+    clientMutationId
+    post {
+      ...FullPost
     }
   }
-  ... on SomeOtherOption {
-    ${SomeFragment}
+}
+```
+
+Noting that the `clientMutationId` is a special field, we provide a condensed syntax for such a query as follows:
+
+```js
+const CreatePost = GraphQL.mutation('createPost', {
+  title: 'String!',
+  body: 'String!',
+}) `{
+  clientMutationId
+  post {
+    ${FullPost}
   }
 }`
 ```
 
+And we can open up the resulting query object yields the following:
+
+```js
+CreatePost.__GRAPHQL_MUTATION__
+// => true
+
+CreatePost.name
+// => 'CreatePost'
+
+CreatePost.definition
+// => `mutation CreatePost($input: CreatePostInput!) {
+  payload: createPost(input: $input) {
+    clientMutationId
+    post {
+      ...FullPost
+    }
+  }
+}`
+
+CreatePost.fragments
+// => { FullPost, Author, Contributor }
+
+// the following are equivalent:
+CreatePost.definition
+CreatePost.toString()
+// => `mutation CreatePost($input: CreatePostInput!) {
+  payload: createPost(input: $input) {
+    clientMutationId
+    post {
+      ...FullPost
+    }
+  }
+}
+
+fragment FullPost on Post {
+  id
+  slug
+  id
+  slug
+  title
+  body
+  contributors {
+    ...Contributor
+  }
+  author {
+    name
+    ...Author
+  }
+}
+
+fragment Contributor on User {
+  ...etc
+`
+```
+
+
+## Document
+
+The `GraphQL.document([ QueryOne, QueryTwo, MutationOne, ... ])` method generates a complete document object which is useful for persisted queries.
+This should never appear in your application logic, although build tools may use this to heavily optimize a production build by persisting a document at build time.
+
+See source code for type declaration and implementation.

@@ -1,7 +1,7 @@
 {
   "name": "graphql-helper",
-  "version": "0.0.11",
-  "description": "A simple helper library for making GraphQL queries. For browser usage, ensure that you have a Promise polyfill.",
+  "version": "0.1.0",
+  "description": "A simple helper library for constructing GraphQL queries.",
   "main": "lib.js",
   "scripts": {
     "compile": "babel src.js --out-file lib.js",
@@ -28,11 +28,11 @@
   "homepage": "https://github.com/bustlelabs/graphql-helper#readme",
   "devDependencies": {
     "ava": "^0.15.2",
-    "babel-cli": "^6.11.4",
+    "babel-cli": "^6.18.0",
     "babel-plugin-transform-flow-comments": "^6.17.0",
-    "babel-preset-es2015": "^6.9.0",
-    "babel-preset-stage-0": "^6.5.0",
-    "babel-register": "^6.11.6",
+    "babel-preset-es2015": "^6.18.0",
+    "babel-preset-stage-0": "^6.16.0",
+    "babel-register": "^6.18.0",
     "flow-bin": "^0.30.0"
   },
   "ava": {
@@ -50,7 +50,5 @@
       "transform-flow-comments"
     ]
   },
-  "dependencies": {
-    "isomorphic-fetch": "^2.2.1"
-  }
+  "dependencies": {}
 }
