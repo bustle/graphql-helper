@@ -284,9 +284,8 @@ export function query<Vars,Result>(
       document,
       fragments,
       // by default serialize to the free document
-      toString() {
-        return document
-      },
+      toString: () => document,
+      toJSON: () => document
     }
   }
 }
@@ -389,6 +388,7 @@ export function mutation<Vars,Result>(
       fragments,
       // by default serialize to the free document
       toString: () => document,
+      toJSON: () => document
     }
 
   }
@@ -506,7 +506,7 @@ export function document(ops: Array<Operation<mixed, mixed>>): Document {
   const document =
     definitionsOf(operations) + "\n\n" + definitionsOf(fragments)
 
-  return { document, operations, fragments, toString: () => document }
+  return { document, operations, fragments, toString: () => document, toJSON: () => document }
 }
 
 // We can, at build time, persist this document to the server

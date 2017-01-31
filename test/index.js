@@ -22,8 +22,8 @@ async function graphql(op, vars, token) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      query: op.toString(),
-      variables: JSON.stringify(variables),
+      query: op,
+      variables,
       token,
     }),
   }).then(r => r.json())
