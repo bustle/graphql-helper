@@ -7,7 +7,6 @@
  *
  */
 
-
 // To ensure that we don't accidentally define a fragment or operation twice,
 // we maintain a map of all our definitions:
 
@@ -18,12 +17,10 @@ type Definitions = {
 
 export const definitions: Definitions = {
   operations: {},
-  fragments: {},
+  fragments: {}
 }
 
-
 // FRAGMENT
-
 
 // A fragment represents the data needs of some component.
 
@@ -92,7 +89,7 @@ export type Fragment = {
 //     }
 //   }`
 
-export function fragment(name: string, on: string = name): TemplateString<Fragment> {
+export function fragment (name: string, on: string = name): TemplateString<Fragment> {
   invariant(
     !definitions.fragments[name],
     `Fragment ${name} is already defined`
@@ -104,20 +101,18 @@ export function fragment(name: string, on: string = name): TemplateString<Fragme
     on,
     definition: `fragment ${name} on ${on} ${String.raw(target, ...values)}`,
     fragments: mergeFragments(values),
-    toString: () => `...${name}`,
+    toString: () => `...${name}`
   }
 }
-
 
 // mergeFragments takes an array of any value, and returns an accumulated map of all fragments
 // flattening the dependency tree as it's called
 
-
-function mergeFragments(values: Array<mixed>): StrMap<Fragment> {
+function mergeFragments (values: Array<mixed>): StrMap<Fragment> {
   return values.reduce((acc, val) => {
     // value is a fragment
     if (val && val.__GRAPHQL_FRAGMENT__) {
-      const fragment: Fragment = (val: any);
+      const fragment: Fragment = (val: any)
       acc[fragment.name] = fragment
       Object.assign(acc, fragment.fragments)
     }
@@ -125,16 +120,14 @@ function mergeFragments(values: Array<mixed>): StrMap<Fragment> {
   }, {})
 }
 
-
 // OPERATION
 
 // An operation desribes a query, mutation or subscription.
 // These are instructions that take an optional input and return a result.
 
-export type Operation<Vars,Res> =
-  | Query<Vars,Res>
-  | Mutation<Vars,Res>
-
+export type Operation<Vars, Res> =
+  | Query<Vars, Res>
+  | Mutation<Vars, Res>
 
 // To form an operation definition, we need some representation of the input that it takes:
 
@@ -161,10 +154,9 @@ export type Operation<Vars,Res> =
 //   summary(length: $previewLength)
 // }
 
-
 // We do so by creating a string map from variable names to the definition strings:
 
-export type VariablesDef<Vars> = StrMap<string>
+export type VariablesDef = StrMap<string>
 
 // e.g. { id: 'ID!', commentLimit: 'Int = 10', previewLength: 'Int = 250' }
 
@@ -172,17 +164,16 @@ export type VariablesDef<Vars> = StrMap<string>
 
 // there exists a natural way to transform this representation back to a GraphQL string
 
-function printVariablesDef<U>(def: VariablesDef<U>) {
+function printVariablesDef<U> (def: VariablesDef<U>) {
   const keys: Array<string> = Object.keys(def)
   return keys.length
     ? parenthesize(keys.map(k => `$${k}: ${def[k]}`).join(', '))
-    : ""
+    : ''
 }
 
-function parenthesize(str: string): string {
+function parenthesize (str: string): string {
   return `(${str})`
 }
-
 
 // QUERY
 
@@ -198,7 +189,7 @@ function parenthesize(str: string): string {
 
 // as some object which contains all its dependencies, as well as a document containing just that query:
 
-export type Query<Vars,Res> = {
+export type Query<Vars> = {
   __GRAPHQL_QUERY__: true,
   name: string,
   variablesDef: VariablesDef<Vars>,
@@ -244,7 +235,6 @@ export type Query<Vars,Res> = {
 //   },
 // }
 
-
 // we construct such an object with a template string as follows:
 
 // const GetPost = GraphQL.query('GetPost', { id: 'ID!' }) `{
@@ -255,18 +245,16 @@ export type Query<Vars,Res> = {
 //   }
 // }`
 
-export function query<Vars,Result>(
+export function query<Vars, Result> (
   name: string,
   variablesDef: VariablesDef<Vars> = {},
-): TemplateString<Query<Vars,Result>> {
-
+): TemplateString<Query<Vars, Result>> {
   invariant(
     !definitions.operations[name],
     `Operation ${name} is already defined`
   )
 
-  return (target, ...values): Query<Vars,Result> => {
-
+  return (target, ...values): Query<Vars, Result> => {
     const definition: string =
       `query ${name}${printVariablesDef(variablesDef)} ${String.raw(target, ...values)}`
 
@@ -274,7 +262,7 @@ export function query<Vars,Result>(
       mergeFragments(values)
 
     const document: string =
-      definition + "\n\n" + definitionsOf(fragments)
+      definition + '\n\n' + definitionsOf(fragments)
 
     return {
       __GRAPHQL_QUERY__: true,
@@ -289,7 +277,6 @@ export function query<Vars,Result>(
     }
   }
 }
-
 
 // MUTATION
 
@@ -326,7 +313,7 @@ export function query<Vars,Result>(
 
 // Our representation is nearly identical to that of a query:
 
-export type Mutation<Vars,Res> = {
+export type Mutation<Vars> = {
   __GRAPHQL_MUTATION__: true,
   name: string,
   variablesDef: VariablesDef<Vars>,
@@ -334,7 +321,6 @@ export type Mutation<Vars,Res> = {
   document: string,
   fragments: StrMap<Fragment>,
 }
-
 
 // But since all mutations share a syntactic form, we treat it as if the mutation looked just like:
 
@@ -358,10 +344,10 @@ export type Mutation<Vars,Res> = {
 //       }
 //     }`
 
-export function mutation<Vars,Result>(
+export function mutation<Vars, Result> (
   name: string,
   variablesDef: VariablesDef<Vars> = {},
-): TemplateString<Mutation<Vars,Result>> {
+): TemplateString<Mutation<Vars, Result>> {
   invariant(
     !definitions.operations[name],
     `Operation ${name} is already defined`
@@ -377,7 +363,7 @@ export function mutation<Vars,Result>(
       mergeFragments(values)
 
     const document: string =
-      definition + "\n\n" + definitionsOf(fragments)
+      definition + '\n\n' + definitionsOf(fragments)
 
     return {
       __GRAPHQL_MUTATION__: true,
@@ -390,14 +376,10 @@ export function mutation<Vars,Result>(
       toString: () => document,
       toJSON: () => document
     }
-
   }
 }
 
-
-
 // TODO: SUBSCRIPTION
-
 
 // DOCUMENT
 
@@ -435,7 +417,6 @@ export function mutation<Vars,Result>(
 //       ${Post}
 //     }
 //   }`
-
 
 // It is reasonable to generate a complete document describing every operation the app can perform
 
@@ -491,7 +472,7 @@ export type Document = {
 
 //   const Document = GraphQL.document([ GetPost, GetAuthor, CreatePost ])
 
-export function document(ops: Array<Operation<mixed, mixed>>): Document {
+export function document (ops: Array<Operation<mixed, mixed>>): Document {
   const operations: StrMap<Operation<mixed, mixed>> =
     ops.reduce((acc, op) => {
       acc[op.name] = op
@@ -504,7 +485,7 @@ export function document(ops: Array<Operation<mixed, mixed>>): Document {
     }, {})
 
   const document =
-    definitionsOf(operations) + "\n\n" + definitionsOf(fragments)
+    definitionsOf(operations) + '\n\n' + definitionsOf(fragments)
 
   return { document, operations, fragments, toString: () => document, toJSON: () => document }
 }
@@ -522,12 +503,10 @@ export function document(ops: Array<Operation<mixed, mixed>>): Document {
 
 // Sample implementation using webpack loaders (inspired by CSS modules) will come soon.
 
-
 // For environments where import * is not supported, we also offer a default export
 // It is not recommended to use this
 
 export default { fragment, query, mutation, document }
-
 
 // Helpers
 
@@ -535,31 +514,28 @@ type StrMap<V> = { [key: string]: V }
 
 type TemplateString<V> = (target: any, ...values: Array<mixed>) => V
 
-
 // We provide invariant checks for non-production builds to ensure that all queries are valid.
 // The ignoreInvariants() function is used to disable the invariant checks for situations such as
 // hot module reloading, where these can create spurious errors
 
 let __IGNORE_INVARIANTS__ = false
 
-function invariant(condition: mixed, message: string): void {
-  if (!__IGNORE_INVARIANTS__ && !condition)
-    throw new Error(`Invariant Exception: ${message}`)
+function invariant (condition: mixed, message: string): void {
+  if (!__IGNORE_INVARIANTS__ && !condition) { throw new Error(`Invariant Exception: ${message}`) }
 }
 
-export function ignoreInvariants(): void {
+export function ignoreInvariants (): void {
   __IGNORE_INVARIANTS__ = true
 }
 
-
 // capitalize the first character of a string
-function capitalize(s: string): string {
+function capitalize (s: string): string {
   return s[0].toUpperCase() + s.slice(1)
 }
 
 // given some StrMap of objects with definitions, accumulate them into one document
-function definitionsOf<A: { definition: string }>(map: StrMap<A>): string {
+function definitionsOf<A: { definition: string }> (map: StrMap<A>): string {
   return Object.keys(map)
     .map(key => map[key].definition)
-    .join("\n\n")
+    .join('\n\n')
 }
