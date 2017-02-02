@@ -1,4 +1,4 @@
-# graphql-helper
+# graphql-helper [![Build Status](https://travis-ci.org/bustlelabs/graphql-helper.svg?branch=master)](https://travis-ci.org/bustlelabs/graphql-helper)
 
 A GraphQL helper library for constructing queries and accumulating fragments.
 This library is meant for statically determined queries, and encourages the use of variables and fragments over string concatenation.
