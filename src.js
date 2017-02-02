@@ -156,7 +156,7 @@ export type Operation<Vars, Res> =
 
 // We do so by creating a string map from variable names to the definition strings:
 
-export type VariablesDef = StrMap<string>
+export type VariablesDef<Vars> = StrMap<string>
 
 // e.g. { id: 'ID!', commentLimit: 'Int = 10', previewLength: 'Int = 250' }
 
@@ -189,7 +189,7 @@ function parenthesize (str: string): string {
 
 // as some object which contains all its dependencies, as well as a document containing just that query:
 
-export type Query<Vars> = {
+export type Query<Vars, Res> = {
   __GRAPHQL_QUERY__: true,
   name: string,
   variablesDef: VariablesDef<Vars>,
