@@ -1,1 +1,3 @@
 test/
+.travis.yml
+rollup.config.js

@@ -1,6 +1,6 @@
 {
   "name": "graphql-helper",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "A simple helper library for constructing GraphQL queries.",
   "main": "dist/graphql-helper.js",
   "module": "dist/graphql-helper.es.js",
