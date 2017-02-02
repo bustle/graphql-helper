@@ -2,9 +2,11 @@
   "name": "graphql-helper",
   "version": "0.1.1",
   "description": "A simple helper library for constructing GraphQL queries.",
-  "main": "lib.js",
+  "main": "dist/graphql-helper.js",
+  "module": "dist/graphql-helper.es.js",
+  "jsnext:main": "dist/graphql-helper.es.js",
   "scripts": {
-    "compile": "babel src.js --out-file lib.js",
+    "compile": "rollup --config",
     "flow": "flow",
     "lint": "eslint . --ignore-path .gitignore",
     "test": "ava",
@@ -29,7 +31,6 @@
   "homepage": "https://github.com/bustlelabs/graphql-helper#readme",
   "devDependencies": {
     "ava": "^0.17.0",
-    "babel-cli": "^6.18.0",
     "babel-eslint": "^7.1.1",
     "babel-plugin-transform-flow-comments": "^6.17.0",
     "babel-preset-es2015": "^6.18.0",
@@ -41,7 +42,9 @@
     "eslint-plugin-promise": "^3.4.0",
     "eslint-plugin-standard": "^2.0.1",
     "flow-bin": "^0.38.0",
-    "isomorphic-fetch": "^2.2.1"
+    "isomorphic-fetch": "^2.2.1",
+    "rollup": "^0.41.4",
+    "rollup-plugin-babel": "^2.7.1"
   },
   "ava": {
     "babel": "inherit",

@@ -503,11 +503,6 @@ export function document (ops: Array<Operation<mixed, mixed>>): Document {
 
 // Sample implementation using webpack loaders (inspired by CSS modules) will come soon.
 
-// For environments where import * is not supported, we also offer a default export
-// It is not recommended to use this
-
-export default { fragment, query, mutation, document }
-
 // Helpers
 
 type StrMap<V> = { [key: string]: V }
