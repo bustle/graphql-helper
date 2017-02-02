@@ -3,7 +3,7 @@ import fetch from 'isomorphic-fetch'
 
 import * as GraphQL from '../src'
 
-async function graphql(op, vars, token) {
+async function graphql (op, vars, token) {
   const url = token
     ? 'https://chi.bustle.com/authorized'
     : 'https://chi.bustle.com/'
@@ -19,27 +19,25 @@ async function graphql(op, vars, token) {
     headers: {
       'Accept': 'application/json',
       'Authorization': token,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({
       query: op,
       variables,
-      token,
-    }),
+      token
+    })
   }).then(r => r.json())
 
-  if (errors)
-    throw errors
+  if (errors) { throw errors }
 
   return op.__GRAPHQL_MUTATION__
     ? data.payload
     : data
 }
 
-
 // QUERY
 
-const query = GraphQL.query('MyQuery', { key: "String!" }) `{
+const query = GraphQL.query('MyQuery', { key: 'String!' }) `{
   env
   site(key: $key) {
     id
@@ -48,7 +46,7 @@ const query = GraphQL.query('MyQuery', { key: "String!" }) `{
 }`
 
 test('GraphQL.query', async t => {
-  const { env, site } = await graphql(query, { key: "Bustle" })
+  const { env, site } = await graphql(query, { key: 'Bustle' })
   t.truthy(env)
   t.truthy(site)
 })
@@ -56,8 +54,8 @@ test('GraphQL.query', async t => {
 // MUTATION
 
 const mutation = GraphQL.mutation('createImageFromKey', {
-  key: "String!",
-  lint: "Boolean",
+  key: 'String!',
+  lint: 'Boolean'
 }) `{
   image {
     id
@@ -68,17 +66,16 @@ const mutation = GraphQL.mutation('createImageFromKey', {
   }
 }`
 
-const token = "SECRET"
+const token = 'SECRET'
 
 test('GraphQL.mutation', async t => {
   t.throws(
-    graphql(mutation, { key: "2016/4/1/518314746.jpg" }, token)
+    graphql(mutation, { key: '2016/4/1/518314746.jpg' }, token)
   )
   // this test will pass if provided a valid token
   // const { image } = await graphql(mutation, { key: "2016/4/1/518314746.jpg" }, token)
   // t.truthy(image)
 })
-
 
 // Fragment
 
@@ -113,7 +110,6 @@ test('GraphQL.fragment', async t => {
   const result = await graphql(queryWithFragment)
   t.truthy(result)
 })
-
 
 // Error
 
