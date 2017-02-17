@@ -5,26 +5,24 @@ This library is meant for statically determined queries, and encourages the use 
 
 This library is fairly short and written in a literate style, it is encouraged to take the time to read through the source code.
 
-- **TODO:** Support for static analysis and pre-compilation of queries
 
 ```bash
-npm install --save graphql-helper
+yarn add graphql-helper
 ```
 
 
 ## Example:
 
 ```js
-import * as GraphQL from 'graphql-helper'
+import { fragment, query } from 'graphql-helper'
 import fetch from 'isomorphic-fetch'
 
-
-const Contributor = GraphQL.fragment('Contributor', 'User') `{
+const Contributor = fragment('Contributor', 'User') `{
   name
   slug
 }`
 
-const Post = GraphQL.fragment('PostPage', 'Post') `{
+const PostPage = fragment('PostPage', 'Post') `{
   title
   body
   contributors {
@@ -32,11 +30,10 @@ const Post = GraphQL.fragment('PostPage', 'Post') `{
   }
 }`
 
-const PostQuery = GraphQL.query('PostQuery', { postId: 'ID!' }) `{
+const PostQuery = query('PostQuery', { postId: 'ID!' }) `{
   post(id: $postId) {
     id
-    title
-    ${Post}
+    ${PostPage}
   }
 }`
 
@@ -52,19 +49,17 @@ function runQuery(op, vars): Promise<Result> {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        query: op.toString(),
-        variables: JSON.stringify(vars),
+        query: op,
+        variables: vars,
       }),
     })
     .then(r => r.json())
-    .then(({ data, errors }) => {
-      errors ? Promise.reject(errors)
-             : Promise.resolve(data)
-    })
+    .then({ data, errors }) => errors ? Promise.reject(errors) : Promise.resolve(data))
+   })
 }
 
 
-// usage
+// Usage
 runQuery(PostQuery, { postId: 123 })
   .then(data => {
     // data = {
@@ -108,20 +103,20 @@ fragment FullPost on Post {
 Suppose `Author` and `Contributor` are fragment definitions that we have already defined, then we can define `FullPost` as follows:
 
 ```js
-import * as GraphQL from 'graphql-helper'
+import { fragment } from 'graphql-helper'
 import { Author, Contributor } from 'some-module'
 
-const FullPost = GraphQL.fragment('FullPost', 'Post') `{
+const FullPost = fragment('FullPost', 'Post') `{
   id
   slug
   title
   body
   contributors {
-    ...Contributors
+    ${Contributor}
   }
   author {
     name
-    ...Author
+    ${Author}
   }
 }`
 ```
@@ -146,7 +141,7 @@ query GetPost($id: ID!) {
 Suppose `FullPost` is already defined above. Then we can define this query as follows:
 
 ```js
-const GetPost = GraphQL.query('GetPost', { id: 'ID!' }) `{
+const GetPost = query('GetPost', { id: 'ID!' }) `{
   post(id: $id) {
     __typename
     id
@@ -325,3 +320,6 @@ The `GraphQL.document([ QueryOne, QueryTwo, MutationOne, ... ])` method generate
 This should never appear in your application logic, although build tools may use this to heavily optimize a production build by persisting a document at build time.
 
 See source code for type declaration and implementation.
+
+## TODO
+- Support for static analysis and pre-compilation of queries
