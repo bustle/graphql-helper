@@ -14,7 +14,7 @@ export default {
     babel({
       babelrc: false,
       presets: [['es2015', { modules: false }]],
-      plugins: ['transform-flow-comments']
+      plugins: ['transform-object-assign', 'transform-flow-comments']
     })
   ]
 }
