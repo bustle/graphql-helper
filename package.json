@@ -4,6 +4,7 @@
   "description": "A simple helper library for constructing GraphQL queries.",
   "main": "dist/graphql-helper.js",
   "module": "dist/graphql-helper.es.js",
+  "types": "graphql-helper.d.ts",
   "jsnext:main": "dist/graphql-helper.es.js",
   "scripts": {
     "compile": "rollup --config",
